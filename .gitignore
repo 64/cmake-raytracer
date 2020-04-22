@@ -2,3 +2,4 @@ CMakeFiles/
 *.cmake
 CMakeCache.txt
 Makefile
+image.ppm
