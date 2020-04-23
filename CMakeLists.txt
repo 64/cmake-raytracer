@@ -44,17 +44,42 @@ function(div rem div res)
     endif()
 
     # Divide the quotient by 10 (remove the last digit)
-    # TODO: Is a regex quicker here?
-    string(LENGTH ${quo} quo_length)
-    math(EXPR quo_length "${quo_length} - 1")
-    string(SUBSTRING ${quo} 0 "${quo_length}" quo)
-
+    div_by_10(${quo} quo)
     set("${res}" "${quo}" PARENT_SCOPE)
+endfunction()
+
+# TODO: Is a regex quicker here?
+function(div_by_10 x res)
+    string(LENGTH ${x} len)
+    math(EXPR len "${len} - 1")
+    string(SUBSTRING ${x} 0 "${len}" tmp)
+    set("${res}" "${tmp}" PARENT_SCOPE)
+endfunction()
+
+function(div_by_2 x res)
+    math(EXPR tmp "${x} >> 1")
+    set("${res}" "${tmp}" PARENT_SCOPE)
 endfunction()
 
 function(truncate x res)
     math(EXPR tmp "${x} / ${scale}")
     set("${res}" "${tmp}" PARENT_SCOPE)
+endfunction()
+
+function(sqrt x res)
+    if(${x} LESS 0)
+        message(FATAL_ERROR "argument passed to square root ${x} was negative")
+    endif()
+    
+    div_by_2(${x} guess)
+
+    foreach(counter RANGE 5)
+        div(${x} ${guess} tmp)
+        add(${tmp} ${guess} tmp)
+        div_by_2(${tmp} guess)
+    endforeach()
+
+    set("${res}" "${guess}" PARENT_SCOPE)
 endfunction()
 
 function(to_fp x res)
@@ -95,10 +120,8 @@ function(print x)
     message(${tmp})
 endfunction()
 
-to_fp(2.05 a)
-to_fp(-1.5 b)
-div(${a} ${b} c)
-print("${c}")
+sqrt(${a} b)
+print(${b})
 
 #mul(${x} ${y} z)
 #print(${z})
