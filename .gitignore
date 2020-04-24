@@ -1,5 +1,6 @@
-CMakeFiles/
-*.cmake
-CMakeCache.txt
-Makefile
-image.ppm
+build
+**/CMakeFiles
+**/*.cmake
+**/CMakeCache.txt
+**/Makefile
+**/*image.*

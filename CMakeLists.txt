@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
+project(cmake-raytracer)
+
+if(NOT "${image_width}")
+    set(image_width "32")
+    set(image_height "16")
+    set(image_start_y "0")
+    set(image_end_y "15")
+endif()
 
 set(scale "100000000")
 string(LENGTH ${scale} frac_digits)
 math(EXPR frac_digits "${frac_digits} - 1")
-
-set(image_width "32")
-set(image_height "16")
 
 math(EXPR image_max_x "${image_width} - 1")
 math(EXPR image_max_y "${image_height} - 1")
@@ -46,7 +51,11 @@ function(div rem div res)
 
     # Divide the quotient by 10 (remove the last digit)
     div_by_10(${quo} quo)
-    set("${res}" "${quo}" PARENT_SCOPE)
+    if(NOT "${quo}") # Round to zero
+        set("${res}" 0 PARENT_SCOPE)
+    else()
+        set("${res}" "${quo}" PARENT_SCOPE)
+    endif()
 endfunction()
 
 # TODO: Is a regex quicker here?
@@ -80,6 +89,11 @@ function(sqrt x res)
     div_by_2(${x} guess)
 
     foreach(counter RANGE 3)
+        if(${guess} EQUAL 0)
+            set("${res}" 0 PARENT_SCOPE)
+            return()
+        endif()
+
         div(${x} ${guess} tmp)
         add(${tmp} ${guess} tmp)
         div_by_2(${tmp} guess)
@@ -374,7 +388,7 @@ endfunction()
 
 # Ray dir must be normalized
 function(trace ray_origin ray_dir depth color)
-    if(${depth} GREATER 3)
+    if(${depth} GREATER_EQUAL 3)
         return()
     else()
         math(EXPR depth "${depth} + 1")
@@ -382,14 +396,14 @@ function(trace ray_origin ray_dir depth color)
 
     sphere_intersect(${ray_origin} ${ray_dir} sphere1_center ${sphere1_radius} hit_t_1 hit_point_1 hit_normal_1)
     sphere_intersect(${ray_origin} ${ray_dir} sphere2_center ${sphere2_radius} hit_t_2 hit_point_2 hit_normal_2)
-    if(${hit_t_1} GREATER 0)
-        vec3_dot(${ray_dir} hit_normal_1 cos)
-        abs(${cos} abs_cos)
-        vec3_mulf(sphere1_color ${abs_cos} col)
-    elseif(${hit_t_2} GREATER 0)
-        vec3_dot(${ray_dir} hit_normal_2 cos)
-        abs(${cos} abs_cos)
-        vec3_mulf(sphere2_color ${abs_cos} col)
+    if(${hit_t_1} GREATER ray_epsilon)
+        random_in_hemisphere(hit_normal_1 target)
+        trace(hit_point_1 target ${depth} col)
+        vec3_mulf(col ${half} col)
+    elseif(${hit_t_2} GREATER ray_epsilon)
+        random_in_hemisphere(hit_normal_2 target)
+        trace(hit_point_2 target ${depth} col)
+        vec3_mulf(col ${half} col)
     else()
         background_color(${ray_dir} col)
     endif()
@@ -398,9 +412,11 @@ function(trace ray_origin ray_dir depth color)
 endfunction()
 
 to_fp(255.99 rgb_scaling)
+to_fp(0.5 half)
 to_fp(${image_width} image_width_fp)
 to_fp(${image_height} image_height_fp)
 to_fp(${image_max_y} image_max_y_fp)
+to_fp(0.01 ray_epsilon)
 
 vec3_to_fp(-2.0 -1.0 -1.0 lower_left_corner)
 vec3_to_fp(4.0 0 0 horizontal)
@@ -416,9 +432,10 @@ to_fp(10 sphere2_radius)
 vec3_to_fp(0 -10.5 -1 sphere2_center)
 vec3_to_fp(0.2 0.2 0.2 sphere2_color)
 
-message("P3\n${image_width} ${image_height}\n255")
+set(spp 50) # samples per pixel
+to_fp(${spp} spp_fp)
 
-foreach(y RANGE ${image_max_y})
+foreach(y RANGE ${image_start_y} ${image_end_y})
     set(row "")
     to_fp(${y} y_fp)
     sub(${image_max_y_fp} ${y_fp} y_fp)
@@ -428,16 +445,22 @@ foreach(y RANGE ${image_max_y})
 
     foreach(x RANGE ${image_max_x})
         to_fp(${x} x_fp)
+        set(rgb 0 0 0)
 
         div(${x_fp} ${image_width_fp} u)
-
         vec3_mulf(horizontal ${u} vx)
         vec3_add(vx vz d)
         vec3_normalize(d d)
-        set(o 0 0 0)
-        trace(o d col)
 
-        vec3_clamp_0_1(col rgb)
+        foreach(s RANGE 1 ${spp})
+            set(o 0 0 0)
+            trace(o d 0 col)
+
+            vec3_clamp_0_1(col col)
+            vec3_divf(col ${spp_fp} col)
+            vec3_add(col rgb rgb)
+        endforeach()
+
         vec3_sqrt(rgb rgb) # gamma correction
         vec3_mulf(rgb ${rgb_scaling} rgb)
         vec3_truncate(rgb rgb)
