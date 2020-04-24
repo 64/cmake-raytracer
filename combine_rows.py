@@ -4,9 +4,8 @@ import os, subprocess
 
 def run_cmake(n):
     build_dir = "./build/" + str(n)
-    with open(build_dir + "/image.pix", "w") as out_file:
-        return subprocess.Popen(["cmake", "."], cwd = build_dir, stderr = out_file)
-    raise Exception
+    out_file = open(build_dir + "/image.pix", "w")
+    return subprocess.Popen(["cmake", "."], cwd = build_dir, stderr = out_file)
 
 width = 100
 height = 50
@@ -32,10 +31,11 @@ with open("CMakeLists.txt", "r") as f:
 
         subprocs.append(run_cmake(i))
 
-    for proc in subprocs:
+    for i in range(n):
+        proc = subprocs[i]
         proc.wait()
         if proc.returncode != 0:
-            print("process failed")
+            print("process " + str(i) + " failed")
     
     ppm_data = ""
     if make_ppm:
