@@ -7,8 +7,8 @@ def run_cmake(n):
     out_file = open(build_dir + "/image.pix", "w")
     return subprocess.Popen(["cmake", "."], cwd = build_dir, stderr = out_file)
 
-width = 100
-height = 50
+width = 64
+height = 32
 y_start = 0
 y_end = height
 n = 4
@@ -36,6 +36,7 @@ with open("CMakeLists.txt", "r") as f:
         proc.wait()
         if proc.returncode != 0:
             print("process " + str(i) + " failed")
+            raise Exception
     
     ppm_data = ""
     if make_ppm:

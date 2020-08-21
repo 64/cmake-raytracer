@@ -1,12 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(cmake-raytracer)
 
-if(NOT "${image_width}")
-    set(image_width "32")
-    set(image_height "16")
-    set(image_start_y "0")
-    set(image_end_y "15")
-endif()
+set(image_width "128")
+set(image_height "128")
 
 set(scale "100000000")
 string(LENGTH ${scale} frac_digits)
@@ -58,6 +54,11 @@ function(div rem div res)
     endif()
 endfunction()
 
+function(fract x res)
+    math(EXPR tmp "${x} % ${scale}")
+    set(${res} ${tmp} PARENT_SCOPE)
+endfunction()
+
 # TODO: Is a regex quicker here?
 function(div_by_10 x res)
     string(LENGTH ${x} len)
@@ -88,7 +89,7 @@ function(sqrt x res)
     
     div_by_2(${x} guess)
 
-    foreach(counter RANGE 3)
+    foreach(counter RANGE 5)
         if(${guess} EQUAL 0)
             set("${res}" 0 PARENT_SCOPE)
             return()
@@ -111,7 +112,7 @@ function(rsqrt x res)
     div_by_2(${x} x2)
     div(${scale} ${x} guess) # guess = 1/x
 
-    foreach(counter RANGE 4)
+    foreach(counter RANGE 5)
         mul(${guess} ${guess} tmp)
         mul(${tmp} ${x2} tmp)
         sub(${three_halves} ${tmp} tmp)
@@ -144,6 +145,19 @@ function(vec3_sub x y res)
     sub(${x_0} ${y_0} z_0)
     sub(${x_1} ${y_1} z_1)
     sub(${x_2} ${y_2} z_2)
+    set("${res}" ${z_0} ${z_1} ${z_2} PARENT_SCOPE)
+endfunction()
+
+function(vec3_mul x y res)
+    list(GET ${x} 0 x_0)
+    list(GET ${x} 1 x_1)
+    list(GET ${x} 2 x_2)
+    list(GET ${y} 0 y_0)
+    list(GET ${y} 1 y_1)
+    list(GET ${y} 2 y_2)
+    mul(${x_0} ${y_0} z_0)
+    mul(${x_1} ${y_1} z_1)
+    mul(${x_2} ${y_2} z_2)
     set("${res}" ${z_0} ${z_1} ${z_2} PARENT_SCOPE)
 endfunction()
 
@@ -300,35 +314,8 @@ function(vec3_clamp_0_1 x res)
     set("${res}" ${z_0} ${z_1} ${z_2} PARENT_SCOPE)
 endfunction()
 
-function(random_in_hemisphere normal res)
-    # Rejection sample (fuck, there has to be a better way to do this)
-    while(TRUE)
-        string(RANDOM LENGTH ${frac_digits} ALPHABET "0123456789" r1)
-        string(RANDOM LENGTH ${frac_digits} ALPHABET "0123456789" r2)
-        string(RANDOM LENGTH ${frac_digits} ALPHABET "0123456789" r3)
-        string(RANDOM LENGTH 1 ALPHABET "+-" sign_1)
-        string(RANDOM LENGTH 1 ALPHABET "+-" sign_2)
-        string(RANDOM LENGTH 1 ALPHABET "+-" sign_3)
-
-        set(p ${sign_1}${r1} ${sign_2}${r2} ${sign_3}${r3})
-        vec3_dot(p p p_2)
-        if(${p_2} LESS ${scale})
-            break()
-        endif()
-    endwhile()
-
-    vec3_dot(p ${normal} p_dot_nrm)
-    if(${p_dot_nrm} LESS 0)
-        set(zero 0 0 0)
-        vec3_sub(zero p p) # p = -p
-    endif()
-
-    vec3_normalize(p p)
-    set("${res}" ${p} PARENT_SCOPE)
-endfunction()
-
-function(sphere_intersect ray_origin ray_dir sphere_center sphere_radius hit_t hit_point hit_normal)
-    vec3_sub(${ray_origin} ${sphere_center} oc)
+function(sphere_intersect ray_origin ray_dir hit_t hit_point hit_normal)
+    vec3_sub(${ray_origin} sphere_center oc)
     vec3_dot(${ray_dir} ${ray_dir} a)
     vec3_dot(oc ${ray_dir} half_b)
     vec3_dot(oc oc oc_2)
@@ -349,7 +336,7 @@ function(sphere_intersect ray_origin ray_dir sphere_center sphere_radius hit_t h
             # p = o + t * d
             vec3_mulf(${ray_dir} ${t} tv)
             vec3_add(${ray_origin} tv point)
-            vec3_sub(point ${sphere_center} normal)
+            vec3_sub(point sphere_center normal)
             vec3_divf(normal ${sphere_radius} unit_normal)
             set(${hit_point} ${point} PARENT_SCOPE)
             set(${hit_normal} ${unit_normal} PARENT_SCOPE)
@@ -363,7 +350,7 @@ function(sphere_intersect ray_origin ray_dir sphere_center sphere_radius hit_t h
             # p = o + t * d
             vec3_mulf(${ray_dir} ${t} tv)
             vec3_add(${ray_origin} tv point)
-            vec3_sub(point ${sphere_center} normal)
+            vec3_sub(point sphere_center normal)
             vec3_divf(normal ${sphere_radius} unit_normal)
             set(${hit_point} ${point} PARENT_SCOPE)
             set(${hit_normal} ${unit_normal} PARENT_SCOPE)
@@ -375,15 +362,75 @@ function(sphere_intersect ray_origin ray_dir sphere_center sphere_radius hit_t h
     set(${hit_t} -1 PARENT_SCOPE)
 endfunction()
 
-function(background_color ray_dir color)
-    list(GET ${ray_dir} 1 y)
-    add(${y} ${scale} y_0_2)
-    div_by_2(${y_0_2} lerp_blue)
-    sub(${scale} ${lerp_blue} lerp_white)
-    vec3_mulf(white_sky_color ${lerp_white} white)
-    vec3_mulf(blue_sky_color ${lerp_blue} blue)
-    vec3_add(white blue sky)
-    set("${color}" ${sky} PARENT_SCOPE)
+#function(background_color ray_dir color)
+    #list(GET ${ray_dir} 1 y)
+    #add(${y} ${scale} y_0_2)
+    #div_by_2(${y_0_2} lerp_blue)
+    #sub(${scale} ${lerp_blue} lerp_white)
+    #vec3_mulf(white_sky_color ${lerp_white} white)
+    #vec3_mulf(blue_sky_color ${lerp_blue} blue)
+    #vec3_add(white blue sky)
+    #set("${color}" ${sky} PARENT_SCOPE)
+#endfunction()
+
+function(plane_intersect ray_origin ray_dir hit_t hit_point hit_normal)
+    list(GET ${ray_dir} 1 ray_o_y)
+    if(${ray_o_y} EQUAL 0)
+        set(${hit_t} -1 PARENT_SCOPE)
+    else()
+        # t = (c - o.y) / d.y
+        sub(${plane_y} ${ray_o_y} ray_y_dist)
+        list(GET ${ray_dir} 1 ray_d_y)
+        div(${ray_y_dist} ${ray_d_y} t) 
+        if(${t} GREATER 0 AND ${t} LESS 2000000000)
+            vec3_mulf(${ray_dir} ${t} ray_scaled_d)
+            vec3_add(${ray_origin} ray_scaled_d point)
+            set(${hit_t} ${t} PARENT_SCOPE)
+            set(${hit_point} ${point} PARENT_SCOPE)
+            set(${hit_normal} 0 ${scale} 0 PARENT_SCOPE)
+        else()
+            set(${hit_t} -1 PARENT_SCOPE)
+        endif()
+    endif()
+endfunction()
+
+function(offset_origin ray_origin hit_norm out_origin)
+    vec3_mulf(${hit_norm} ${ray_epsilon} scaled_norm)
+    vec3_add(scaled_norm ${ray_origin} origin)
+    set(${out_origin} ${origin} PARENT_SCOPE)
+endfunction()
+
+function(light_contrib point norm light_pos light_col out_col)
+    #l = light_pos.sub(p)
+    vec3_sub(${light_pos} ${point} l)
+    #lnorm = l.norm()
+    vec3_normalize(l lnorm)
+    #ndotl = norm.dot(lnorm)
+    vec3_dot(${norm} lnorm ndotl)
+
+    #offset_origin(${ray_origin} ${norm} new_origin)
+
+    # Check visibility
+    # plane can't occlude rays because they will never start from underneath
+
+    #sphere_intersect(${point} lnorm hit_t hit_point hit_norm)
+
+    #set(z 0 0 0)
+    #vec3_sub(z lnorm zlnorm)
+    #sphere_intersect(${light_pos} zlnorm hit_t hit_point hit_norm)
+    #vec3_dot(l l trace_len_2)
+    #mul(${hit_t} ${hit_t} hit_t_2)
+    #sub(${trace_len_2} ${hit_t_2} discrepancy)
+    #abs(${discrepancy} discrepancy)
+
+    if(${ndotl} LESS 0)
+        set(${out_col} 0 0 0 PARENT_SCOPE)
+    else()
+        vec3_mulf(${light_col} ${ndotl} unscaled_out)
+        vec3_dot(l l l2)
+        vec3_divf(unscaled_out ${l2} out)
+        set(${out_col} ${out} PARENT_SCOPE)
+    endif()
 endfunction()
 
 # Ray dir must be normalized
@@ -394,18 +441,91 @@ function(trace ray_origin ray_dir depth color)
         math(EXPR depth "${depth} + 1")
     endif()
 
-    sphere_intersect(${ray_origin} ${ray_dir} sphere1_center ${sphere1_radius} hit_t_1 hit_point_1 hit_normal_1)
-    sphere_intersect(${ray_origin} ${ray_dir} sphere2_center ${sphere2_radius} hit_t_2 hit_point_2 hit_normal_2)
-    if(${hit_t_1} GREATER ray_epsilon)
-        random_in_hemisphere(hit_normal_1 target)
-        trace(hit_point_1 target ${depth} col)
-        vec3_mulf(col ${half} col)
-    elseif(${hit_t_2} GREATER ray_epsilon)
-        random_in_hemisphere(hit_normal_2 target)
-        trace(hit_point_2 target ${depth} col)
-        vec3_mulf(col ${half} col)
+    sphere_intersect(${ray_origin} ${ray_dir} hit_t_1 hit_point_1 hit_normal_1)
+    plane_intersect(${ray_origin} ${ray_dir} hit_t_2 hit_point_2 hit_normal_2)
+    if(${hit_t_1} GREATER ${ray_epsilon})
+        # specular reflection
+        offset_origin(hit_point_1 hit_normal_1 new_origin)
+
+        # reflect
+        vec3_dot(hit_normal_1 ${ray_dir} scalar)
+        mul_by_2(${scalar} scalar)
+        vec3_mulf(hit_normal_1 ${scalar} refl_a)
+        vec3_sub(${ray_dir} refl_a new_dir)
+
+        trace(new_origin new_dir ${depth} traced_col)
+
+        set(col 0 0 0)
+        light_contrib(hit_point_1 hit_normal_1 light1_pos light1_col out_col1)
+        light_contrib(hit_point_1 hit_normal_1 light2_pos light2_col out_col2)
+        vec3_add(col out_col1 col)
+        vec3_add(col out_col2 col)
+        vec3_add(col traced_col col)
+
+        set(base_col ${sphere_color})
+        vec3_mul(base_col col col)
+
+    elseif(${hit_t_2} GREATER ${ray_epsilon})
+        set(light_col 0 0 0)
+
+        # if x^2 + z^2 < 0.5: col = black (for shadow)
+        list(GET hit_point_2 0 hit_p_x)
+        list(GET hit_point_2 2 hit_p_z)
+
+        math(EXPR three "${scale} * 385 / 100")
+
+        mul(${hit_p_x} ${hit_p_x} hit_p_x_2)
+        sub(${hit_p_z} ${three} shadow_centre_z)
+        mul(${shadow_centre_z} ${shadow_centre_z} hit_p_z_2)
+        add(${hit_p_x_2} ${hit_p_z_2} hit_dist_2)
+
+        if(${hit_dist_2} GREATER_EQUAL 550000000)
+            light_contrib(hit_point_2 hit_normal_2 light1_pos light1_col out_col1)
+            light_contrib(hit_point_2 hit_normal_2 light2_pos light2_col out_col2)
+            vec3_add(light_col out_col1 light_col)
+            vec3_add(light_col out_col2 light_col)
+        endif()
+
+        # calculate base color from checkerboard
+        #if hit_p.x % 1 > 0.5 and hit_p.z % 1 > 0.5:
+            #val = 0.6
+        #elif hit_p.x % 1 < 0.5 and hit_p.z % 1 < 0.5:
+            #val = 0.6
+        #else:
+            #val = 0.1
+        #math(EXPR half "${scale} / 2")
+        #list(GET hit_point_2 0 hit_p_x)
+        #list(GET hit_point_2 1 hit_p_z)
+        #math(EXPR hit_p_x "${hit_p_x} % ${scale}")
+        #math(EXPR hit_p_z "${hit_p_z} % ${scale}")
+        #abs(${hit_p_x} hit_p_x)
+        #abs(${hit_p_z} hit_p_z)
+        #sub(${hit_p_x} ${half} hit_p_x_neg)
+        #sub(${hit_p_z} ${half} hit_p_z_neg)
+        #mul(${hit_p_x_neg} ${hit_p_z_neg} same_signs)
+        math(EXPR half "${scale} / 2")
+        math(EXPR hit_p_x "${hit_p_x} % ${scale}")
+        math(EXPR hit_p_z "${hit_p_z} % ${scale}")
+
+        # shitty hack
+        if(${hit_p_x} LESS 0)
+            add(${hit_p_x} ${scale} hit_p_x)
+        endif()
+
+        abs(${hit_p_x} hit_p_x)
+        abs(${hit_p_z} hit_p_z)
+
+        if((${hit_p_x} GREATER ${half}) AND (${hit_p_z} GREATER ${half}))
+            set(base_col ${plane_color_1})
+        elseif((${hit_p_x} LESS ${half}) AND (${hit_p_z} LESS ${half}))
+            set(base_col ${plane_color_1})
+        else()
+            set(base_col ${plane_color_2})
+        endif()
+
+        vec3_mul(light_col base_col col)
     else()
-        background_color(${ray_dir} col)
+        set(col 0 0 0)
     endif()
 
     set("${color}" ${col} PARENT_SCOPE)
@@ -418,50 +538,50 @@ to_fp(${image_height} image_height_fp)
 to_fp(${image_max_y} image_max_y_fp)
 to_fp(0.01 ray_epsilon)
 
-vec3_to_fp(-2.0 -1.0 -1.0 lower_left_corner)
-vec3_to_fp(4.0 0 0 horizontal)
-vec3_to_fp(0 2.0 0 vertical)
-vec3_to_fp(1.0 1.0 1.0 white_sky_color)
-vec3_to_fp(0.5 0.7 1.0 blue_sky_color)
+to_fp(2 sphere_radius)
+vec3_to_fp(0.0 0.0 3.0 sphere_center)
+vec3_to_fp(0.3 0.3 0.3 sphere_color)
 
-to_fp(0.5 sphere1_radius)
-vec3_to_fp(0 0 -1 sphere1_center)
-vec3_to_fp(0.5 0.1 0.1 sphere1_color)
+to_fp(-2 plane_y)
+vec3_to_fp(0.6 0.6 0.6 plane_color_1)
+vec3_to_fp(0.1 0.1 0.1 plane_color_2)
 
-to_fp(10 sphere2_radius)
-vec3_to_fp(0 -10.5 -1 sphere2_center)
-vec3_to_fp(0.2 0.2 0.2 sphere2_color)
+vec3_to_fp(-2 4 1 light1_pos)
+vec3_to_fp(20 3 3 light1_col)
 
-set(spp 50) # samples per pixel
-to_fp(${spp} spp_fp)
+vec3_to_fp(2 4 1 light2_pos)
+vec3_to_fp(3 20 3 light2_col)
 
-foreach(y RANGE ${image_start_y} ${image_end_y})
+message("P3 ${image_width} ${image_height}\n255\n")
+
+foreach(y RANGE ${image_max_y})
     set(row "")
     to_fp(${y} y_fp)
-    sub(${image_max_y_fp} ${y_fp} y_fp)
+    #sub(${image_max_y_fp} ${y_fp} y_fp)
     div(${y_fp} ${image_height_fp} v)
-    vec3_mulf(vertical ${v} vy)
-    vec3_add(lower_left_corner vy vz)
+
+    # d = Vec3(2 * u - 1, 1 - 2 * v, 1).norm()
+    mul_by_2(${v} v2)
+    sub(${scale} ${v2} ray_dir_y)
 
     foreach(x RANGE ${image_max_x})
         to_fp(${x} x_fp)
         set(rgb 0 0 0)
 
         div(${x_fp} ${image_width_fp} u)
-        vec3_mulf(horizontal ${u} vx)
-        vec3_add(vx vz d)
-        vec3_normalize(d d)
 
-        foreach(s RANGE 1 ${spp})
-            set(o 0 0 0)
-            trace(o d 0 col)
+        mul_by_2(${u} u2)
+        sub(${u2} ${scale} ray_dir_x)
 
-            vec3_clamp_0_1(col col)
-            vec3_divf(col ${spp_fp} col)
-            vec3_add(col rgb rgb)
-        endforeach()
+        set(ray_dir ${ray_dir_x} ${ray_dir_y} ${scale})
+        vec3_normalize(ray_dir d)
 
-        vec3_sqrt(rgb rgb) # gamma correction
+        set(o 0 0 0)
+        trace(o d 0 rgb)
+
+        vec3_clamp_0_1(rgb rgb)
+
+        vec3_sqrt(rgb rgb) # approx gamma correction
         vec3_mulf(rgb ${rgb_scaling} rgb)
         vec3_truncate(rgb rgb)
 
