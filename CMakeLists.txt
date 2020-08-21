@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(cmake-raytracer)
 
-set(image_width "128")
-set(image_height "128")
+set(image_width "32")
+set(image_height "32")
 
 set(scale "100000000")
 string(LENGTH ${scale} frac_digits)
@@ -362,17 +362,6 @@ function(sphere_intersect ray_origin ray_dir hit_t hit_point hit_normal)
     set(${hit_t} -1 PARENT_SCOPE)
 endfunction()
 
-#function(background_color ray_dir color)
-    #list(GET ${ray_dir} 1 y)
-    #add(${y} ${scale} y_0_2)
-    #div_by_2(${y_0_2} lerp_blue)
-    #sub(${scale} ${lerp_blue} lerp_white)
-    #vec3_mulf(white_sky_color ${lerp_white} white)
-    #vec3_mulf(blue_sky_color ${lerp_blue} blue)
-    #vec3_add(white blue sky)
-    #set("${color}" ${sky} PARENT_SCOPE)
-#endfunction()
-
 function(plane_intersect ray_origin ray_dir hit_t hit_point hit_normal)
     list(GET ${ray_dir} 1 ray_o_y)
     if(${ray_o_y} EQUAL 0)
@@ -400,28 +389,11 @@ function(offset_origin ray_origin hit_norm out_origin)
     set(${out_origin} ${origin} PARENT_SCOPE)
 endfunction()
 
+# doesn' account for shadowing, this is faked
 function(light_contrib point norm light_pos light_col out_col)
-    #l = light_pos.sub(p)
     vec3_sub(${light_pos} ${point} l)
-    #lnorm = l.norm()
     vec3_normalize(l lnorm)
-    #ndotl = norm.dot(lnorm)
     vec3_dot(${norm} lnorm ndotl)
-
-    #offset_origin(${ray_origin} ${norm} new_origin)
-
-    # Check visibility
-    # plane can't occlude rays because they will never start from underneath
-
-    #sphere_intersect(${point} lnorm hit_t hit_point hit_norm)
-
-    #set(z 0 0 0)
-    #vec3_sub(z lnorm zlnorm)
-    #sphere_intersect(${light_pos} zlnorm hit_t hit_point hit_norm)
-    #vec3_dot(l l trace_len_2)
-    #mul(${hit_t} ${hit_t} hit_t_2)
-    #sub(${trace_len_2} ${hit_t_2} discrepancy)
-    #abs(${discrepancy} discrepancy)
 
     if(${ndotl} LESS 0)
         set(${out_col} 0 0 0 PARENT_SCOPE)
@@ -468,41 +440,24 @@ function(trace ray_origin ray_dir depth color)
     elseif(${hit_t_2} GREATER ${ray_epsilon})
         set(light_col 0 0 0)
 
-        # if x^2 + z^2 < 0.5: col = black (for shadow)
         list(GET hit_point_2 0 hit_p_x)
         list(GET hit_point_2 2 hit_p_z)
 
-        math(EXPR three "${scale} * 385 / 100")
+        # Use equation of a circle to fake shadow
+        sub(${hit_p_z} ${shadow_center} shadow_offset_z)
+        mul(${hit_p_x} ${hit_p_x} shadow_offset_x_2)
+        mul(${shadow_offset_z} ${shadow_offset_z} shadow_offset_z_2)
+        add(${shadow_offset_x_2} ${shadow_offset_z_2} hit_dist_2)
 
-        mul(${hit_p_x} ${hit_p_x} hit_p_x_2)
-        sub(${hit_p_z} ${three} shadow_centre_z)
-        mul(${shadow_centre_z} ${shadow_centre_z} hit_p_z_2)
-        add(${hit_p_x_2} ${hit_p_z_2} hit_dist_2)
-
-        if(${hit_dist_2} GREATER_EQUAL 550000000)
+        if(${hit_dist_2} GREATER_EQUAL ${shadow_radius})
             light_contrib(hit_point_2 hit_normal_2 light1_pos light1_col out_col1)
             light_contrib(hit_point_2 hit_normal_2 light2_pos light2_col out_col2)
             vec3_add(light_col out_col1 light_col)
             vec3_add(light_col out_col2 light_col)
         endif()
 
-        # calculate base color from checkerboard
-        #if hit_p.x % 1 > 0.5 and hit_p.z % 1 > 0.5:
-            #val = 0.6
-        #elif hit_p.x % 1 < 0.5 and hit_p.z % 1 < 0.5:
-            #val = 0.6
-        #else:
-            #val = 0.1
-        #math(EXPR half "${scale} / 2")
-        #list(GET hit_point_2 0 hit_p_x)
-        #list(GET hit_point_2 1 hit_p_z)
-        #math(EXPR hit_p_x "${hit_p_x} % ${scale}")
-        #math(EXPR hit_p_z "${hit_p_z} % ${scale}")
-        #abs(${hit_p_x} hit_p_x)
-        #abs(${hit_p_z} hit_p_z)
-        #sub(${hit_p_x} ${half} hit_p_x_neg)
-        #sub(${hit_p_z} ${half} hit_p_z_neg)
-        #mul(${hit_p_x_neg} ${hit_p_z_neg} same_signs)
+        # Calculate checkerboard pattern
+        # TODO: Is there a better way?
         math(EXPR half "${scale} / 2")
         math(EXPR hit_p_x "${hit_p_x} % ${scale}")
         math(EXPR hit_p_z "${hit_p_z} % ${scale}")
@@ -542,6 +497,9 @@ to_fp(2 sphere_radius)
 vec3_to_fp(0.0 0.0 3.0 sphere_center)
 vec3_to_fp(0.3 0.3 0.3 sphere_color)
 
+to_fp(3.85 shadow_center)
+to_fp(5.5 shadow_radius)
+
 to_fp(-2 plane_y)
 vec3_to_fp(0.6 0.6 0.6 plane_color_1)
 vec3_to_fp(0.1 0.1 0.1 plane_color_2)
@@ -557,10 +515,8 @@ message("P3 ${image_width} ${image_height}\n255\n")
 foreach(y RANGE ${image_max_y})
     set(row "")
     to_fp(${y} y_fp)
-    #sub(${image_max_y_fp} ${y_fp} y_fp)
     div(${y_fp} ${image_height_fp} v)
 
-    # d = Vec3(2 * u - 1, 1 - 2 * v, 1).norm()
     mul_by_2(${v} v2)
     sub(${scale} ${v2} ray_dir_y)
 
@@ -581,9 +537,9 @@ foreach(y RANGE ${image_max_y})
 
         vec3_clamp_0_1(rgb rgb)
 
-        vec3_sqrt(rgb rgb) # approx gamma correction
+        vec3_sqrt(rgb rgb) # approx gamma correction (1/2 \approx 1/2.2)
         vec3_mulf(rgb ${rgb_scaling} rgb)
-        vec3_truncate(rgb rgb)
+        vec3_truncate(rgb rgb) # shitty tonemap
 
         list(GET rgb 0 r)
         list(GET rgb 1 g)
