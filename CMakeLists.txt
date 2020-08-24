@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(cmake-raytracer)
 
-set(image_width "32")
-set(image_height "32")
+set(image_width "128")
+set(image_height "128")
 
 set(scale "100000000")
 string(LENGTH ${scale} frac_digits)
