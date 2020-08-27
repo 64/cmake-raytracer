@@ -3,13 +3,44 @@ project(cmake-raytracer)
 
 set(image_width "128")
 set(image_height "128")
+set(num_procs 8) # if you change this remember to change the bit below
+
+if(NOT DEFINED worker_index)
+    message(STATUS "Launching ray tracer with ${num_procs} processes...")
+
+    # Create directory structure for each of the worker processes
+    foreach(worker_index RANGE 1 ${num_procs})
+        message("Building worker-${worker_index}")
+        file(MAKE_DIRECTORY "worker-${worker_index}")
+        file(COPY "./CMakeLists.txt" DESTINATION "worker-${worker_index}")
+    endforeach()
+
+    # Begin the recursive execution
+    # TODO: is there a better way
+    execute_process(
+        COMMAND "cmake . -Wno-dev -Dworker_index=1"
+        COMMAND "cmake . -Wno-dev -Dworker_index=2"
+        COMMAND "cmake . -Wno-dev -Dworker_index=3"
+        COMMAND "cmake . -Wno-dev -Dworker_index=4"
+        COMMAND "cmake . -Wno-dev -Dworker_index=5"
+        COMMAND "cmake . -Wno-dev -Dworker_index=6"
+        COMMAND "cmake . -Wno-dev -Dworker_index=7"
+        COMMAND "cmake . -Wno-dev -Dworker_index=8"
+        COMMAND_ECHO STDOUT
+    )
+    return()
+elseif(${worker_index} LESS_EQUAL 0 OR ${worker_index} GREATER ${num_procs})
+    message(FATAL_ERROR "worker index ${worker_index} out of bounds")
+else()
+    math(EXPR image_min_y "(${worker_index} - 1) * ${image_height} / ${num_procs}")
+    math(EXPR image_max_y "${worker_index} * ${image_height} / ${num_procs} - 1")
+
+    math(EXPR image_max_x "${image_width} - 1")
+endif()
 
 set(scale "100000000")
 string(LENGTH ${scale} frac_digits)
 math(EXPR frac_digits "${frac_digits} - 1")
-
-math(EXPR image_max_x "${image_width} - 1")
-math(EXPR image_max_y "${image_height} - 1")
 
 function(add a b res)
     math(EXPR tmp "(${a}) + (${b})")
@@ -490,14 +521,13 @@ to_fp(255.99 rgb_scaling)
 to_fp(0.5 half)
 to_fp(${image_width} image_width_fp)
 to_fp(${image_height} image_height_fp)
-to_fp(${image_max_y} image_max_y_fp)
 to_fp(0.01 ray_epsilon)
 
 to_fp(2 sphere_radius)
 vec3_to_fp(0.0 0.0 3.0 sphere_center)
 vec3_to_fp(0.3 0.3 0.3 sphere_color)
 
-to_fp(3.85 shadow_center)
+to_fp(3.82 shadow_center)
 to_fp(5.5 shadow_radius)
 
 to_fp(-2 plane_y)
@@ -512,7 +542,7 @@ vec3_to_fp(3 20 3 light2_col)
 
 message("P3 ${image_width} ${image_height}\n255\n")
 
-foreach(y RANGE ${image_max_y})
+foreach(y RANGE ${image_min_y} ${image_max_y})
     set(row "")
     to_fp(${y} y_fp)
     div(${y_fp} ${image_height_fp} v)

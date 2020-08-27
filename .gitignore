@@ -4,3 +4,7 @@ build
 **/CMakeCache.txt
 **/Makefile
 **/*image.*
+worker-*/
+*.sln
+.vscode/
+*.vcxproj*
