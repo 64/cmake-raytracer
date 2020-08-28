@@ -8,30 +8,32 @@ set(num_procs 8) # if you change this remember to change the bit below
 if(NOT DEFINED worker_index)
     message(STATUS "Launching ray tracer with ${num_procs} processes...")
 
-    # Create directory structure for each of the worker processes
+    set(exec_command "execute_process(\n")
     foreach(worker_index RANGE 1 ${num_procs})
-        message("Building worker-${worker_index}")
-        file(MAKE_DIRECTORY "worker-${worker_index}")
-        file(COPY "./CMakeLists.txt" DESTINATION "worker-${worker_index}")
+        set(exec_command "${exec_command}COMMAND cmake . -Wno-dev -Dworker_index=${worker_index}\n")
+    endforeach()
+    set(exec_command "${exec_command} )")
+
+    # Begin the worker processes
+    cmake_language(EVAL CODE ${exec_command})
+
+    message(STATUS "Finished ray tracing, gathering results...")
+
+    # Ray tracing done, output PPM
+    set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
+
+    foreach(worker_index RANGE 1 ${num_procs})
+        file(READ "worker-${worker_index}.txt" file_contents)
+        set(image_contents "${image_contents}${file_contents}")
     endforeach()
 
-    # Begin the recursive execution
-    # TODO: is there a better way
-    execute_process(
-        COMMAND "cmake . -Wno-dev -Dworker_index=1"
-        COMMAND "cmake . -Wno-dev -Dworker_index=2"
-        COMMAND "cmake . -Wno-dev -Dworker_index=3"
-        COMMAND "cmake . -Wno-dev -Dworker_index=4"
-        COMMAND "cmake . -Wno-dev -Dworker_index=5"
-        COMMAND "cmake . -Wno-dev -Dworker_index=6"
-        COMMAND "cmake . -Wno-dev -Dworker_index=7"
-        COMMAND "cmake . -Wno-dev -Dworker_index=8"
-        COMMAND_ECHO STDOUT
-    )
+    message("${image_contents}")
+
     return()
 elseif(${worker_index} LESS_EQUAL 0 OR ${worker_index} GREATER ${num_procs})
     message(FATAL_ERROR "worker index ${worker_index} out of bounds")
 else()
+    # We're in a worker process
     math(EXPR image_min_y "(${worker_index} - 1) * ${image_height} / ${num_procs}")
     math(EXPR image_max_y "${worker_index} * ${image_height} / ${num_procs} - 1")
 
@@ -527,7 +529,7 @@ to_fp(2 sphere_radius)
 vec3_to_fp(0.0 0.0 3.0 sphere_center)
 vec3_to_fp(0.3 0.3 0.3 sphere_color)
 
-to_fp(3.82 shadow_center)
+to_fp(3.75 shadow_center)
 to_fp(5.5 shadow_radius)
 
 to_fp(-2 plane_y)
@@ -540,7 +542,7 @@ vec3_to_fp(20 3 3 light1_col)
 vec3_to_fp(2 4 1 light2_pos)
 vec3_to_fp(3 20 3 light2_col)
 
-message("P3 ${image_width} ${image_height}\n255\n")
+file(REMOVE "worker-${worker_index}.txt")
 
 foreach(y RANGE ${image_min_y} ${image_max_y})
     set(row "")
@@ -577,5 +579,6 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         set(row "${row} ${r} ${g} ${b}")
     endforeach()
 
-    message("${row}")
+    file(APPEND "worker-${worker_index}.txt" "${row}\n")
 endforeach()
+
