@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(cmake-raytracer)
 
-set(image_width "128")
-set(image_height "128")
-set(num_procs 8) # if you change this remember to change the bit below
+set(image_width 64)
+set(image_height 64)
+set(num_procs 4)
 
 if(NOT DEFINED worker_index)
     message(STATUS "Launching ray tracer with ${num_procs} processes...")
