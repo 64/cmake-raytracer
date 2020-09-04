@@ -1,16 +1,22 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18) # cmake_language command requires 3.18
 project(cmake-raytracer)
 
-set(image_width 64)
-set(image_height 64)
-set(num_procs 4)
+if(NOT DEFINED image_width)
+    set(image_width 64)
+endif()
+if(NOT DEFINED image_height)
+    set(image_height 64)
+endif()
+if(NOT DEFINED num_procs)
+    set(num_procs 4)
+endif()
 
 if(NOT DEFINED worker_index)
-    message(STATUS "Launching ray tracer with ${num_procs} processes...")
+    message(STATUS "Launching ray tracer with ${num_procs} processes, ${image_width}x${image_height} image...")
 
     set(exec_command "execute_process(\n")
     foreach(worker_index RANGE 1 ${num_procs})
-        set(exec_command "${exec_command}COMMAND cmake . -Wno-dev -Dworker_index=${worker_index}\n")
+        set(exec_command "${exec_command}COMMAND cmake . -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
     endforeach()
     set(exec_command "${exec_command} )")
 
@@ -19,7 +25,7 @@ if(NOT DEFINED worker_index)
 
     message(STATUS "Finished ray tracing, gathering results...")
 
-    # Ray tracing done, output PPM
+    # Output PPM
     set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
 
     foreach(worker_index RANGE 1 ${num_procs})
