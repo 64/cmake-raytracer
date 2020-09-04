@@ -2,6 +2,8 @@
 
 A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://github.com/tcbrindle/raytracer.hpp).
 
+![image](render.png)
+
 ## Usage
 
 The ray tracer writes its output to `stderr`, so you can use it with:
