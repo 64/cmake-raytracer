@@ -1,6 +1,6 @@
 # CMake Ray Tracer
 
-A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://github.com/tcbrindle/raytracer.hpp).
+A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://github.com/tcbrindle/raytracer.hpp). More information can be found at [my blog](https://64.github.io/cmake-raytracer).
 
 ![image](render.png)
 
@@ -9,7 +9,7 @@ A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://g
 The ray tracer writes its output to `stderr`, so you can use it with:
 
 ```
-cmake . -Wno-dev -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 2> image.ppm
+cmake . -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 2> image.ppm
 ```
 
 Which writes the output to `image.ppm`. Then use an image viewer capable of opening PPM files (or [this](http://www.cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html)) to view.

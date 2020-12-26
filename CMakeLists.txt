@@ -8,7 +8,7 @@ if(NOT DEFINED image_height)
     set(image_height 64)
 endif()
 if(NOT DEFINED num_procs)
-    set(num_procs 4)
+    set(num_procs 2)
 endif()
 
 if(NOT DEFINED worker_index)
@@ -61,36 +61,13 @@ function(sub a b res)
 endfunction()
 
 function(mul a b res)
-    # TODO: Can this be made to overflow less?
     math(EXPR tmp "((${a}) * (${b})) / ${scale}")
     set("${res}" "${tmp}" PARENT_SCOPE)
 endfunction()
 
-function(div rem div res)
-    set(quo 0)
-    math(EXPR b "${frac_digits} + 1")
-
-    while((NOT ("${rem}" EQUAL "0")) AND ("${b}" GREATER_EQUAL "0"))
-        math(EXPR d "${rem} / ${div}")
-        math(EXPR rem "${rem} % ${div}")
-        string(REPEAT "0" "${b}" zeroes)
-        math(EXPR quo "${quo} + (${d} * 1${zeroes})") # quo += d * pow(10, b)
-        set(rem "${rem}0")
-        math(EXPR b "${b} - 1")
-    endwhile()
-
-    if(${quo} EQUAL 0)
-        set("${res}" "${quo}" PARENT_SCOPE)
-        return()
-    endif()
-
-    # Divide the quotient by 10 (remove the last digit)
-    div_by_10(${quo} quo)
-    if(NOT "${quo}") # Round to zero
-        set("${res}" 0 PARENT_SCOPE)
-    else()
-        set("${res}" "${quo}" PARENT_SCOPE)
-    endif()
+function(div a b res)
+    math(EXPR tmp "((${a}) * (${scale})) / ${b}")
+    set("${res}" "${tmp}" PARENT_SCOPE)
 endfunction()
 
 function(fract x res)
@@ -137,25 +114,6 @@ function(sqrt x res)
         div(${x} ${guess} tmp)
         add(${tmp} ${guess} tmp)
         div_by_2(${tmp} guess)
-    endforeach()
-
-    set("${res}" "${guess}" PARENT_SCOPE)
-endfunction()
-
-function(rsqrt x res)
-    if(${x} LESS 0)
-        message(FATAL_ERROR "arg to inverse square root ${x} was negative")
-    endif()
-    
-    to_fp(1.5 three_halves)
-    div_by_2(${x} x2)
-    div(${scale} ${x} guess) # guess = 1/x
-
-    foreach(counter RANGE 5)
-        mul(${guess} ${guess} tmp)
-        mul(${tmp} ${x2} tmp)
-        sub(${three_halves} ${tmp} tmp)
-        mul(${tmp} ${guess} guess)
     endforeach()
 
     set("${res}" "${guess}" PARENT_SCOPE)
@@ -262,12 +220,14 @@ function(vec3_normalize x res)
     set("${res}" ${tmp} PARENT_SCOPE)
 endfunction()
 
+# Convert a number to fixed point representation
 function(to_fp x res)
+    # Basic idea: split into integer and fractional parts,
+    # multiply both by scale and combine.
     string(REPLACE "." ";" both_parts "${x};0")
     list(GET both_parts 0 int_part)
     list(GET both_parts 1 frac_part)
     string(SUBSTRING ${int_part} 0 1 sign)
-    math(EXPR int_part "${int_part}") # -0 -> 0
 
     string(SUBSTRING ${frac_part} 0 6 frac_part)
     string(LENGTH ${frac_part} frac_length)
@@ -283,6 +243,8 @@ function(to_fp x res)
     set("${res}" "${tmp}" PARENT_SCOPE)
 endfunction()
 
+# Converts from fixed point to normal representation
+# Doesn't really need to be fast as we only use it for debugging
 function(from_fp x res)
     math(EXPR int_part "(${x}) / ${scale}")
     if(${int_part} EQUAL 0)
@@ -300,6 +262,26 @@ function(from_fp x res)
     string(SUBSTRING "${x}" ${decimal_point_pos} ${frac_digits} fract_part)
 
     set("${res}" "${int_part}.${fract_part}" PARENT_SCOPE)
+endfunction()
+
+to_fp(1.5 three_halves)
+
+function(rsqrt x res)
+    if(${x} LESS 0)
+        message(FATAL_ERROR "arg to inverse square root ${x} was negative")
+    endif()
+    
+    div_by_2(${x} x2)
+    div(${scale} ${x} guess) # guess = 1/x
+
+    foreach(counter RANGE 5)
+        mul(${guess} ${guess} tmp)
+        mul(${tmp} ${x2} tmp)
+        sub(${three_halves} ${tmp} tmp)
+        mul(${tmp} ${guess} guess)
+    endforeach()
+
+    set("${res}" "${guess}" PARENT_SCOPE)
 endfunction()
 
 function(vec3_to_fp x y z res)
