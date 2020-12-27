@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18) # cmake_language command requires 3.18
-project(cmake-raytracer)
+project(cmake-raytracer LANGUAGES NONE)
 
 if(NOT DEFINED image_width)
     set(image_width 64)
