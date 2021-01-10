@@ -448,7 +448,7 @@ function(trace ray_origin ray_dir depth color)
 
         trace(new_origin new_dir ${depth} traced_col)
 
-        set(col 0 0 0)
+        set(col ${light_color_ambient})
         light_contrib(hit_point_1 hit_normal_1 light1_pos light1_col out_col1)
         light_contrib(hit_point_1 hit_normal_1 light2_pos light2_col out_col2)
         vec3_add(col out_col1 col)
@@ -459,7 +459,7 @@ function(trace ray_origin ray_dir depth color)
         vec3_mul(base_col col col)
 
     elseif(${hit_t_2} GREATER ${ray_epsilon})
-        set(light_col 0 0 0)
+        set(light_col ${light_color_ambient})
 
         list(GET hit_point_2 0 hit_p_x)
         list(GET hit_point_2 2 hit_p_z)
@@ -516,6 +516,7 @@ to_fp(0.01 ray_epsilon)
 to_fp(2 sphere_radius)
 vec3_to_fp(0.0 0.0 3.0 sphere_center)
 vec3_to_fp(0.3 0.3 0.3 sphere_color)
+vec3_to_fp(0.05 0.05 0.05 light_color_ambient)
 
 to_fp(3.0 shadow_center)
 to_fp(4 shadow_radius2)
