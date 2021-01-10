@@ -550,7 +550,7 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         sub(${u2} ${scale} ray_dir_x)
 
         set(ray_dir ${ray_dir_x} ${ray_dir_y} ${scale})
-        vec3_normalize(ray_dir d)
+        set(d ${ray_dir})
 
         set(o 0 0 0)
         trace(o d 0 rgb)
