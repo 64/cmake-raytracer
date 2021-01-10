@@ -16,7 +16,7 @@ if(NOT DEFINED worker_index)
 
     set(exec_command "execute_process(\n")
     foreach(worker_index RANGE 1 ${num_procs})
-        set(exec_command "${exec_command}COMMAND cmake . -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
+        set(exec_command "${exec_command}COMMAND ${CMAKE_COMMAND} . -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
     endforeach()
     set(exec_command "${exec_command} )")
 
