@@ -474,7 +474,7 @@ function(trace ray_origin ray_dir depth color)
         light_contrib(hit_point_2 hit_normal_2 light2_pos light2_col out_col2)
         vec3_add(light_col out_col1 light_col)
         vec3_add(light_col out_col2 light_col)
-        if(${hit_dist_2} LESS ${shadow_radius2})
+        if((${hit_dist_2} LESS ${shadow_radius2}) AND (${depth} LESS 2))
           vec3_mulf(light_col ${tenth} light_col)
         endif()
 
