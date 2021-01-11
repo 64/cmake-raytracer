@@ -483,13 +483,13 @@ function(trace ray_origin ray_dir depth color)
         math(EXPR hit_p_x "${hit_p_x} % ${scale}")
         math(EXPR hit_p_z "${hit_p_z} % ${scale}")
 
-        # shitty hack
+        # CMake module yields negative values for negative arguments, fortunately it is easy to fix.
         if(${hit_p_x} LESS 0)
             add(${hit_p_x} ${scale} hit_p_x)
         endif()
-
-        abs(${hit_p_x} hit_p_x)
-        abs(${hit_p_z} hit_p_z)
+        if(${hit_p_z} LESS 0)
+            add(${hit_p_z} ${scale} hit_p_z)
+        endif()
 
         if((${hit_p_x} GREATER ${half}) AND (${hit_p_z} GREATER ${half}))
             set(base_col ${plane_color_1})
