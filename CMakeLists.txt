@@ -410,7 +410,7 @@ function(offset_origin ray_origin hit_norm out_origin)
     set(${out_origin} ${origin} PARENT_SCOPE)
 endfunction()
 
-# doesn' account for shadowing, this is faked
+# Doesn't account for shadowing, this is faked
 function(light_contrib point norm light_pos light_col out_col)
     vec3_sub(${light_pos} ${point} l)
     vec3_normalize(l lnorm)
@@ -470,11 +470,12 @@ function(trace ray_origin ray_dir depth color)
         mul(${shadow_offset_z} ${shadow_offset_z} shadow_offset_z_2)
         add(${shadow_offset_x_2} ${shadow_offset_z_2} hit_dist_2)
 
-        if(${hit_dist_2} GREATER_EQUAL ${shadow_radius2})
-            light_contrib(hit_point_2 hit_normal_2 light1_pos light1_col out_col1)
-            light_contrib(hit_point_2 hit_normal_2 light2_pos light2_col out_col2)
-            vec3_add(light_col out_col1 light_col)
-            vec3_add(light_col out_col2 light_col)
+        light_contrib(hit_point_2 hit_normal_2 light1_pos light1_col out_col1)
+        light_contrib(hit_point_2 hit_normal_2 light2_pos light2_col out_col2)
+        vec3_add(light_col out_col1 light_col)
+        vec3_add(light_col out_col2 light_col)
+        if((${hit_dist_2} LESS ${shadow_radius2}) AND (${depth} LESS 2))
+          vec3_mulf(light_col ${tenth} light_col)
         endif()
 
         # Calculate checkerboard pattern
@@ -483,7 +484,7 @@ function(trace ray_origin ray_dir depth color)
         math(EXPR hit_p_x "${hit_p_x} % ${scale}")
         math(EXPR hit_p_z "${hit_p_z} % ${scale}")
 
-        # CMake module yields negative values for negative arguments, fortunately it is easy to fix.
+        # CMake modulo yields negative values for negative arguments, fortunately it is easy to fix.
         if(${hit_p_x} LESS 0)
             add(${hit_p_x} ${scale} hit_p_x)
         endif()
@@ -509,6 +510,7 @@ endfunction()
 
 to_fp(255.99 rgb_scaling)
 to_fp(0.5 half)
+to_fp(0.1 tenth)
 to_fp(${image_width} image_width_fp)
 to_fp(${image_height} image_height_fp)
 to_fp(0.01 ray_epsilon)
@@ -550,7 +552,7 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         sub(${u2} ${scale} ray_dir_x)
 
         set(ray_dir ${ray_dir_x} ${ray_dir_y} ${scale})
-        vec3_normalize(ray_dir d)
+        set(d ${ray_dir})
 
         set(o 0 0 0)
         trace(o d 0 rgb)
