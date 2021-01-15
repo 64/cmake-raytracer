@@ -16,9 +16,9 @@ if(NOT DEFINED worker_index)
 
     set(exec_command "execute_process(\n")
     foreach(worker_index RANGE 1 ${num_procs})
-        set(exec_command "${exec_command}COMMAND ${CMAKE_COMMAND} . -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
+        set(exec_command "${exec_command}COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR} -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
     endforeach()
-    set(exec_command "${exec_command} )")
+    set(exec_command "${exec_command} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )")
 
     # Begin the worker processes
     cmake_language(EVAL CODE ${exec_command})
@@ -29,7 +29,10 @@ if(NOT DEFINED worker_index)
     set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
 
     foreach(worker_index RANGE 1 ${num_procs})
-        file(READ "worker-${worker_index}.txt" file_contents)
+        file(READ
+            "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt"
+            file_contents
+        )
         set(image_contents "${image_contents}${file_contents}")
     endforeach()
 
@@ -532,7 +535,7 @@ vec3_to_fp(20 3 3 light1_col)
 vec3_to_fp(2 4 1 light2_pos)
 vec3_to_fp(3 20 3 light2_col)
 
-file(REMOVE "worker-${worker_index}.txt")
+file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt")
 
 foreach(y RANGE ${image_min_y} ${image_max_y})
     set(row "")
@@ -569,6 +572,9 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         set(row "${row} ${r} ${g} ${b}")
     endforeach()
 
-    file(APPEND "worker-${worker_index}.txt" "${row}\n")
+    file(APPEND
+        "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt"
+        "${row}\n"
+    )
 endforeach()
 
