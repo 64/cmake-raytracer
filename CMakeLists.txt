@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.15 #[[
+    3.7+    if(... [ LESS_EQUAL | GREATER_EQUAL ] ...)
+    3.15+   string(REPEAT ...)
+]])
 project(cmake-raytracer LANGUAGES NONE)
 
 if(NOT DEFINED image_width)
