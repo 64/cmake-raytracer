@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.18) # cmake_language command requires 3.18
+cmake_minimum_required(VERSION 3.15 #[[
+    3.7+    if(... [ LESS_EQUAL | GREATER_EQUAL ] ...)
+    3.15+   string(REPEAT ...)
+]])
 project(cmake-raytracer LANGUAGES NONE)
 
 if(NOT DEFINED image_width)
@@ -14,14 +17,24 @@ endif()
 if(NOT DEFINED worker_index)
     message(STATUS "Launching ray tracer with ${num_procs} processes, ${image_width}x${image_height} image...")
 
-    set(exec_command "execute_process(\n")
+    set(exec_args)
     foreach(worker_index RANGE 1 ${num_procs})
-        set(exec_command "${exec_command}COMMAND ${CMAKE_COMMAND} . -Wno-dev -Dworker_index=${worker_index} -Dimage_width=${image_width} -Dimage_height=${image_height} -Dnum_procs=${num_procs}\n")
+        list(APPEND exec_args
+            COMMAND "${CMAKE_COMMAND}"
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+                -Wno-dev
+                -Dworker_index=${worker_index}
+                -Dimage_width=${image_width}
+                -Dimage_height=${image_height}
+                -Dnum_procs=${num_procs}
+        )
     endforeach()
-    set(exec_command "${exec_command} )")
 
     # Begin the worker processes
-    cmake_language(EVAL CODE ${exec_command})
+    execute_process(
+        ${exec_args}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 
     message(STATUS "Finished ray tracing, gathering results...")
 
@@ -29,7 +42,10 @@ if(NOT DEFINED worker_index)
     set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
 
     foreach(worker_index RANGE 1 ${num_procs})
-        file(READ "worker-${worker_index}.txt" file_contents)
+        file(READ
+            "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt"
+            file_contents
+        )
         set(image_contents "${image_contents}${file_contents}")
     endforeach()
 
@@ -532,7 +548,7 @@ vec3_to_fp(20 3 3 light1_col)
 vec3_to_fp(2 4 1 light2_pos)
 vec3_to_fp(3 20 3 light2_col)
 
-file(REMOVE "worker-${worker_index}.txt")
+file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt")
 
 foreach(y RANGE ${image_min_y} ${image_max_y})
     set(row "")
@@ -569,6 +585,9 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         set(row "${row} ${r} ${g} ${b}")
     endforeach()
 
-    file(APPEND "worker-${worker_index}.txt" "${row}\n")
+    file(APPEND
+        "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt"
+        "${row}\n"
+    )
 endforeach()
 
