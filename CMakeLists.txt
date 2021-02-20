@@ -245,7 +245,7 @@ function(to_fp x res)
     list(GET both_parts 1 frac_part)
     string(SUBSTRING ${int_part} 0 1 sign)
 
-    string(SUBSTRING ${frac_part} 0 6 frac_part)
+    string(SUBSTRING ${frac_part} 0 ${frac_digits} frac_part)
     string(LENGTH ${frac_part} frac_length)
     math(EXPR pad_length "${frac_digits} - ${frac_length}")
     string(REPEAT "0" "${pad_length}" padding)
