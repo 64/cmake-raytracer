@@ -8,7 +8,7 @@ A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://g
 
 The ray tracer writes its output to `stderr`, so you can use it with:
 
-```
+```shell
 cmake . -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 2> image.ppm
 ```
 
@@ -27,7 +27,7 @@ for X in 1 2 4 8 16 32 64 128 256 512 ; do echo SIZE $X ; time cmake . -Dimage_w
 ```
 PowerShell alternative:
 ```powershell
-1, 2, 4, 8, 16, 32, 64, 128, 256, 512 | foreach {Write-Host $_; (Measure-Command { cmake . "-Dimage_width=$_" "-Dimage_height=$_" "-Dnum_procs=$Env:NUMBER_OF_PROCESSORS" 2> image_size_$_.ppm }).TotalSeconds }
+1, 2, 4, 8, 16, 32, 64, 128, 256, 512 | foreach {Write-Host $_; (Measure-Command { cmake . "-Dimage_width=$_" "-Dimage_height=$_" "-Dnum_procs=$Env:NUMBER_OF_PROCESSORS" 2> image_size_$_.ppm }).TotalSeconds}
 ```
 
 Figures reported by `time` command below (reformatted).  As usual, the "real" time is the wall clock time.  The others are summed on all processors.
