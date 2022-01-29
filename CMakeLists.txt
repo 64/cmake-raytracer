@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.15 #[[
     3.7+    if(... [ LESS_EQUAL | GREATER_EQUAL ] ...)
     3.15+   string(REPEAT ...)
 ]])
-project(cmake-raytracer LANGUAGES NONE)
 
 if(NOT DEFINED image_width)
     set(image_width 64)
@@ -14,6 +13,8 @@ if(NOT DEFINED num_procs)
     set(num_procs 2)
 endif()
 
+include(png.cmake)
+
 if(NOT DEFINED worker_index)
     message(STATUS "Launching ray tracer with ${num_procs} processes, ${image_width}x${image_height} image...")
 
@@ -21,12 +22,12 @@ if(NOT DEFINED worker_index)
     foreach(worker_index RANGE 1 ${num_procs})
         list(APPEND exec_args
             COMMAND "${CMAKE_COMMAND}"
-                "${CMAKE_CURRENT_SOURCE_DIR}"
-                -Wno-dev
                 -Dworker_index=${worker_index}
                 -Dimage_width=${image_width}
                 -Dimage_height=${image_height}
                 -Dnum_procs=${num_procs}
+                "-P"
+                "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
         )
     endforeach()
 
@@ -38,18 +39,32 @@ if(NOT DEFINED worker_index)
 
     message(STATUS "Finished ray tracing, gathering results...")
 
-    # Output PPM
-    set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
+    # Output PPM or PNG
+    if(NOT DEFINED use_png)
+        set(image_contents "P3 ${image_width} ${image_height}\n255\n\n")
+    endif()
 
     foreach(worker_index RANGE 1 ${num_procs})
         file(READ
             "${CMAKE_CURRENT_BINARY_DIR}/worker-${worker_index}.txt"
             file_contents
         )
-        set(image_contents "${image_contents}${file_contents}")
+        if(NOT DEFINED use_png)
+            set(image_contents "${image_contents}${file_contents}")
+        else()
+            string(APPEND image_data ${file_contents})
+        endif()
     endforeach()
 
-    message("${image_contents}")
+    if(NOT DEFINED use_png)
+        message("${image_contents}")
+    else()
+        # We're slightly abusing this command to replace whitespace from the
+        # PPM format with semicolons to form a CMake list.
+        separate_arguments(image_data UNIX_COMMAND "${image_data}")
+        encode_png(OUTPUT png_bytes WIDTH ${image_width} HEIGHT ${image_height} DATA ${image_data})
+        write_binary_file_powershell(FILENAME ${use_png} DATA ${png_bytes})
+    endif()
 
     return()
 elseif(${worker_index} LESS_EQUAL 0 OR ${worker_index} GREATER ${num_procs})

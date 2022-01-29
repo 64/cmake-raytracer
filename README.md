@@ -9,10 +9,16 @@ A simple ray tracer written in pure CMake. Inspired by [raytracer.hpp](https://g
 The ray tracer writes its output to `stderr`, so you can use it with:
 
 ```shell
-cmake . -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 2> image.ppm
+cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -P CMakeLists.txt 2> image.ppm
 ```
 
 Which writes the output to `image.ppm`. Then use an image viewer capable of opening PPM files (or [this](http://www.cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html)) to view.
+
+Alternatively, the ray tracer can directly write PNG files courtesy of @benmcmorran (PowerShell required for now). Use the `use_png` variable to set the name of the PNG file without the extension. The example below will write output to `render.png`.
+
+```shell
+cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -Duse_png=render -P CMakeLists.txt
+```
 
 `num_procs` controls the number of worker processes spawned. It is recommended to set this to a value no greater than the number of cores in your CPU, for maximum performance.
 
@@ -23,11 +29,11 @@ For now, to keep the code simple, you are required to keep `image_width`, `image
 Using cmake 3.19.2 on Linux 5.4 on a i5-10210U (4 cores, 8 threads), running this command:
 
 ```shell
-for X in 1 2 4 8 16 32 64 128 256 512 ; do echo SIZE $X ; time cmake . -Dimage_width=$X -Dimage_height=$X -Dnum_procs=8 2> image_size_${X}.ppm  ; done
+for X in 1 2 4 8 16 32 64 128 256 512 ; do echo SIZE $X ; time cmake -Dimage_width=$X -Dimage_height=$X -Dnum_procs=8 -P CMakeLists.txt 2> image_size_${X}.ppm  ; done
 ```
 PowerShell alternative:
 ```powershell
-1, 2, 4, 8, 16, 32, 64, 128, 256, 512 | foreach {Write-Host $_; (Measure-Command { cmake . "-Dimage_width=$_" "-Dimage_height=$_" "-Dnum_procs=$Env:NUMBER_OF_PROCESSORS" 2> image_size_$_.ppm }).TotalSeconds}
+1, 2, 4, 8, 16, 32, 64, 128, 256, 512 | foreach {Write-Host $_; (Measure-Command { cmake "-Dimage_width=$_" "-Dimage_height=$_" "-Dnum_procs=$Env:NUMBER_OF_PROCESSORS" -P CMakeLists.txt 2> image_size_$_.ppm }).TotalSeconds}
 ```
 
 Figures reported by `time` command below (reformatted).  As usual, the "real" time is the wall clock time.  The others are summed on all processors.

@@ -1,6 +1,7 @@
 build
 **/CMakeFiles
 **/*.cmake
+!png.cmake
 **/CMakeCache.txt
 **/Makefile
 **/*image.*
