@@ -14,7 +14,7 @@ cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -P CMakeLists.txt 2> imag
 
 Which writes the output to `image.ppm`. Then use an image viewer capable of opening PPM files (or [this](http://www.cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html)) to view.
 
-Alternatively, the ray tracer can directly write PNG files (PowerShell required for now). Use the `use_png` variable to set the name of the PNG file without the extension. The example below will write output to `render.png`.
+Alternatively, the ray tracer can directly write PNG files courtesy of @benmcmorran (PowerShell required for now). Use the `use_png` variable to set the name of the PNG file without the extension. The example below will write output to `render.png`.
 
 ```shell
 cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -Duse_png=render -P CMakeLists.txt
