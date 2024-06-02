@@ -73,6 +73,7 @@ if(NOT DEFINED worker_index)
         separate_arguments(image_data UNIX_COMMAND "${image_data}")
         encode_png(OUTPUT png_bytes WIDTH ${image_width} HEIGHT ${image_height} DATA ${image_data})
         write_binary_file_powershell(FILENAME ${use_png} DATA ${png_bytes})
+        message(STATUS "wrote ${use_png}.png")
     endif()
 
     return()
