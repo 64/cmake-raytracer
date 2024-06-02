@@ -3,6 +3,12 @@ cmake_minimum_required(VERSION 3.15 #[[
     3.15+   string(REPEAT ...)
 ]])
 
+get_property(cmake_role GLOBAL PROPERTY CMAKE_ROLE)
+if(NOT cmake_role STREQUAL "SCRIPT")
+    message(FATAL_ERROR "please run in script mode like
+    cmake -P ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt")
+endif()
+
 if(NOT DEFINED image_width)
     set(image_width 64)
 endif()
