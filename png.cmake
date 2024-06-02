@@ -57,7 +57,7 @@ function(compute_adler32)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" OUTPUT DATA)
     set(ACCUMULATOR_1 1)
     set(ACCUMULATOR_2 0)
-    foreach(ELEMENT ${ARG_DATA})
+    foreach(ELEMENT IN LISTS ARG_DATA)
         math(EXPR ACCUMULATOR_1 "(${ELEMENT} + ${ACCUMULATOR_1}) % 65521")
         math(EXPR ACCUMULATOR_2 "(${ACCUMULATOR_1} + ${ACCUMULATOR_2}) % 65521")
     endforeach()
@@ -69,7 +69,7 @@ endfunction()
 function(compute_crc32)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" OUTPUT DATA)
     set(CRC 0)
-    foreach(BYTE ${ARG_DATA})
+    foreach(BYTE IN LISTS ARG_DATA)
         math(EXPR INDEX "(${CRC} & 0xFF) ^ ${BYTE}")
         list(GET CRC_LOOKUP_TABLE ${INDEX} TABLE_VALUE)
         math(EXPR CRC "${TABLE_VALUE} ^ ((${CRC} & 0xFFFFFFFF) >> 8)")
@@ -90,7 +90,7 @@ function(encode_deflate_block)
     else()
         set(RESULT 0)
     endif()
-    
+
     # Next is two bytes for the length of the block, followed by the one's
     # complement of the length. Even though the rest of the PNG uses big
     # endian numbers, deflate uses little endian lengths.
@@ -98,7 +98,7 @@ function(encode_deflate_block)
     to_two_bytes(NUMBER ${LEN} OUTPUT LEN_BYTES)
     list(REVERSE LEN_BYTES)
     list(APPEND RESULT ${LEN_BYTES})
-    foreach(LEN_BYTE ${LEN_BYTES})
+    foreach(LEN_BYTE IN LISTS LEN_BYTES)
         math(EXPR NLEN_BYTE "~${LEN_BYTE} & 0xFF")
         list(APPEND RESULT ${NLEN_BYTE})
     endforeach()
@@ -160,7 +160,7 @@ function(encode_png_block)
     # The CRC-32 checksum includes the block type, but not the block length.
     compute_crc32(OUTPUT CHECKSUM DATA ${RESULT})
     list(APPEND RESULT ${CHECKSUM})
-    
+
     # Length comes at the beginning of the block.
     list(LENGTH ARG_DATA LEN)
     to_four_bytes(NUMBER ${LEN} OUTPUT LEN_BYTES)
@@ -174,7 +174,7 @@ function(encode_png)
 
     # Magic bytes at the beginning of the PNG format.
     set(RESULT 137 80 78 71 13 10 26 10)
-    
+
     # The IHDR block starts with width and height.
     set(IHDR_DATA)
     to_four_bytes(NUMBER ${ARG_WIDTH} OUTPUT IHDR_DATA)
