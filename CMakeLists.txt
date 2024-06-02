@@ -10,7 +10,10 @@ if(NOT DEFINED image_height)
     set(image_height 64)
 endif()
 if(NOT DEFINED num_procs)
-    set(num_procs 2)
+    cmake_host_system_information(RESULT num_procs QUERY NUMBER_OF_PHYSICAL_CORES)
+    if(num_procs LESS 1)
+        set(num_procs 2)
+    endif()
 endif()
 
 include(png.cmake)
@@ -133,7 +136,7 @@ function(sqrt x res)
     if(${x} LESS 0)
         message(FATAL_ERROR "arg passed to square root ${x} was negative")
     endif()
-    
+
     div_by_2(${x} guess)
 
     foreach(counter RANGE 5)
@@ -301,7 +304,7 @@ function(rsqrt x res)
     if(${x} LESS 0)
         message(FATAL_ERROR "arg to inverse square root ${x} was negative")
     endif()
-    
+
     div_by_2(${x} x2)
     div(${scale} ${x} guess) # guess = 1/x
 
@@ -422,7 +425,7 @@ function(plane_intersect ray_origin ray_dir hit_t hit_point hit_normal)
         # t = (c - o.y) / d.y
         list(GET ${ray_origin} 1 ray_o_y)
         sub(${plane_y} ${ray_o_y} ray_y_dist)
-        div(${ray_y_dist} ${ray_d_y} t) 
+        div(${ray_y_dist} ${ray_d_y} t)
         if(${t} GREATER 0 AND ${t} LESS 2000000000)
             vec3_mulf(${ray_dir} ${t} ray_scaled_d)
             vec3_add(${ray_origin} ray_scaled_d point)
@@ -605,4 +608,3 @@ foreach(y RANGE ${image_min_y} ${image_max_y})
         "${row}\n"
     )
 endforeach()
-
