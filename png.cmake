@@ -207,12 +207,19 @@ function(encode_png)
     set(${ARG_OUTPUT} ${RESULT} PARENT_SCOPE)
 endfunction()
 
-# There's no way to write binary files in CMake, so we use Powershell.
+# There's no way to write binary files in CMake, so we use Powershell or Python.
 # https://gitlab.kitware.com/cmake/cmake/-/issues/21878
 function(write_binary_file_powershell)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" FILENAME DATA)
     string(JOIN "\n" TEXT ${ARG_DATA})
     file(WRITE ${ARG_FILENAME}.temp ${TEXT})
-    execute_process(COMMAND powershell -Command "(Get-Content '${ARG_FILENAME}.temp').ForEach({ [byte] $_ }) | Set-Content '${ARG_FILENAME}.png' -Encoding Byte")
+    find_package(Python COMPONENTS Interpreter)
+    if(Python_Interpreter_FOUND)
+        execute_process(COMMAND ${Python_EXECUTABLE} -c "with open('${ARG_FILENAME}.temp', 'r') as f, open('${ARG_FILENAME}.png', 'wb') as o: [o.write(int(l).to_bytes()) for l in f]")
+    elseif(WIN32)
+        execute_process(COMMAND powershell -Command "(Get-Content '${ARG_FILENAME}.temp').ForEach({ [byte] $_ }) | Set-Content '${ARG_FILENAME}.png' -Encoding Byte")
+    else()
+        message(FATAL_ERROR "Python or Powershell is required to write PNG files.")
+    endif()
     file(REMOVE ${ARG_FILENAME}.temp)
 endfunction()
