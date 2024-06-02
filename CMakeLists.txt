@@ -36,7 +36,7 @@ if(NOT DEFINED worker_index)
                 -Dimage_height=${image_height}
                 -Dnum_procs=${num_procs}
                 "-P"
-                "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
+                "${CMAKE_CURRENT_LIST_FILE}"
         )
     endforeach()
 
