@@ -209,7 +209,7 @@ endfunction()
 
 # There's no way to write binary files in CMake, so we use Powershell or Python.
 # https://gitlab.kitware.com/cmake/cmake/-/issues/21878
-function(write_binary_file_powershell)
+function(write_binary_file)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" FILENAME DATA)
     string(JOIN "\n" TEXT ${ARG_DATA})
     file(WRITE ${ARG_FILENAME}.temp ${TEXT})

@@ -5,8 +5,7 @@ cmake_minimum_required(VERSION 3.15 #[[
 
 get_property(cmake_role GLOBAL PROPERTY CMAKE_ROLE)
 if(NOT cmake_role STREQUAL "SCRIPT")
-    message(FATAL_ERROR "please run in script mode like
-    cmake -P ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "Please run in script mode, e.g: cmake -P CMakeLists.txt")
 endif()
 
 if(NOT DEFINED image_width)
@@ -72,8 +71,8 @@ if(NOT DEFINED worker_index)
         # PPM format with semicolons to form a CMake list.
         separate_arguments(image_data UNIX_COMMAND "${image_data}")
         encode_png(OUTPUT png_bytes WIDTH ${image_width} HEIGHT ${image_height} DATA ${image_data})
-        write_binary_file_powershell(FILENAME ${use_png} DATA ${png_bytes})
-        message(STATUS "wrote ${use_png}.png")
+        write_binary_file(FILENAME ${use_png} DATA ${png_bytes})
+        message(STATUS "Wrote ${use_png}.png")
     endif()
 
     return()

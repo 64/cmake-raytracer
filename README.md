@@ -12,17 +12,17 @@ The ray tracer writes its output to `stderr`, so you can use it with:
 cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -P CMakeLists.txt 2> image.ppm
 ```
 
-Which writes the output to `image.ppm`. Then use an image viewer capable of opening PPM files (or [this](http://www.cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html)) to view.
+Which renders using 4 CPU cores and writes the output to `image.ppm`. Then use an image viewer capable of opening PPM files (or [this](http://www.cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html)) to view.
 
-Alternatively, the ray tracer can directly write PNG files courtesy of @benmcmorran (PowerShell required for now). Use the `use_png` variable to set the name of the PNG file without the extension. The example below will write output to `render.png`.
+**Alternatively, the ray tracer can directly write PNG files** (thanks to @benmcmorran for contributing this). The PNG encoder is also implemented in pure CMake, but either PowerShell or Python is required with this method since CMake is unable to write binary files directly. Set the `use_png` variable to set the name of the PNG file (without the extension). The example below will write output to `render.png`:
 
 ```shell
 cmake -Dimage_width=64 -Dimage_height=64 -Dnum_procs=4 -Duse_png=render -P CMakeLists.txt
 ```
 
-`num_procs` controls the number of worker processes spawned. It is recommended to set this to a value no greater than the number of cores in your CPU, for maximum performance.
+`num_procs` controls the number of worker processes spawned. It is recommended to set this to a value no greater than the number of cores in your CPU, for maximum performance. If not provided, it will be automatically detected based on the number of available cores.
 
-For now, to keep the code simple, you are required to keep `image_width`, `image_height` and `num_procs` as powers of 2, otherwise the image may not be fully formed. If not specified, these arguments default to the values shown above.
+To keep the code simple, the `image_width`, `image_height` and `num_procs` must be powers of 2, otherwise the image will not be fully formed. If not specified, these arguments default to the values shown above.
 
 ## Performance
 
